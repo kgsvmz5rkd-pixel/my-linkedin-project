@@ -117,17 +117,38 @@ The script loads the saved session, opens the composer, types the post
 (preserving line breaks), and clicks Post. If it reports the session expired,
 have the user re-run `save-linkedin-session.js` and try again.
 
-### Images and link previews
+### Media (image or video) and link previews
 
-- To attach a custom image, pass `--image <path>` (e.g.
-  `assets/test-image.png`). A bundled placeholder image lives in `assets/`.
+- To attach custom media, pass `--media <path>`. It accepts images
+  (.png/.jpg/.gif…) and video (.mp4/.mov/.m4v/.webm/.avi). Video gets extra
+  upload/processing time automatically. `--image` is a kept alias for `--media`.
+- A bundled placeholder image lives in `assets/test-image.png`.
 - When the post text contains a URL, LinkedIn auto-generates a link preview
   using the website's own image. The script removes that preview, and
-  attaching an image replaces it entirely, so the user's chosen image is shown
+  attaching media replaces it entirely, so the user's chosen media is shown
   instead of the URL's image. The URLs remain as plain clickable links in the
-  body. Use `--keep-preview` to opt out of removal.
+  body. Use `--keep-preview` to opt out of removal (e.g. you WANT the card).
 - Always offer a `--dry-run --headed` first so the user can visually confirm
-  the image is theirs (not the website's) before publishing.
+  the media is theirs (not the website's) before publishing.
+
+### Generating an image (free, built-in)
+
+To create a branded text/quote card image (no external API or account), run:
+
+```bash
+node scripts/generate-image.js --text "Your headline" \
+  --subtext "Optional supporting line" --accent "#FFD200" \
+  --out assets/my-card.png
+```
+
+It renders an HTML card with the bundled browser and saves a PNG. Then attach
+it: `node scripts/post-to-linkedin.js --file draft.md --media assets/my-card.png`.
+Good for hooks, quotes, and stats. Ask the user for the headline/colors, or
+propose them from the drafted post.
+
+Note: only branded text-card generation is built in. Photorealistic AI images
+and AI video are NOT included (they need an external paid API + key); if the
+user asks for those, say so rather than attempting it.
 
 After posting, confirm success to the user and clean up `draft.md` if desired.
 

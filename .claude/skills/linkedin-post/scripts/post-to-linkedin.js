@@ -7,15 +7,18 @@
  * Usage:
  *   node scripts/post-to-linkedin.js --file draft.md
  *   node scripts/post-to-linkedin.js --text "Hello world"
- *   node scripts/post-to-linkedin.js --text "test one" --image assets/test-image.png
+ *   node scripts/post-to-linkedin.js --text "test one" --media assets/test-image.png
+ *   node scripts/post-to-linkedin.js --text "launch day" --media clip.mp4
  *   node scripts/post-to-linkedin.js --file draft.md --dry-run --headed
  *
  * Flags:
+ *   --media <path>   Attach a custom image OR video (.png/.jpg or .mp4/.mov…).
+ *                    This also REPLACES LinkedIn's auto-generated link preview,
+ *                    so any URLs in the text show as plain links and your media
+ *                    is used instead. Video gets extra time to upload/process.
+ *   --image <path>   Alias for --media (kept for convenience).
  *   --file <path>    Read post content from a file (preferred for long posts).
  *   --text <str>     Inline post content.
- *   --image <path>   Attach a custom image. This also REPLACES LinkedIn's
- *                    auto-generated link preview, so any URLs in the text show
- *                    as plain links and your image is used instead.
  *   --keep-preview   Do not try to remove LinkedIn's auto link preview.
  *   --dry-run        Fill the composer and screenshot, but DO NOT publish.
  *   --headed         Run with a visible browser window (useful for debugging).
@@ -28,12 +31,13 @@ const fs = require('fs');
 const path = require('path');
 
 const MAX_CHARS = 3000;
+const VIDEO_RE = /\.(mp4|mov|m4v|webm|avi)$/i;
 
 function parseArgs(argv) {
   const args = {
     file: null,
     text: null,
-    image: null,
+    media: null,
     keepPreview: false,
     dryRun: false,
     headless: true,
@@ -42,7 +46,7 @@ function parseArgs(argv) {
     const a = argv[i];
     if (a === '--file') args.file = argv[++i];
     else if (a === '--text') args.text = argv[++i];
-    else if (a === '--image') args.image = argv[++i];
+    else if (a === '--media' || a === '--image') args.media = argv[++i];
     else if (a === '--keep-preview') args.keepPreview = true;
     else if (a === '--dry-run') args.dryRun = true;
     else if (a === '--headed') args.headless = false;
@@ -86,34 +90,41 @@ async function removeLinkPreview(page) {
   return false;
 }
 
-// Attach a custom image. Adding media also makes LinkedIn drop the link preview.
-async function attachImage(page, imagePath) {
+// Attach custom media (image or video). Adding media also makes LinkedIn drop
+// the link preview. Returns true if the media was a video.
+async function attachMedia(page, mediaPath) {
+  const isVideo = VIDEO_RE.test(mediaPath);
+
   // Click the media/photo button so the file input is mounted.
   try {
     await page
-      .getByRole('button', { name: /add a photo|add media|photo/i })
+      .getByRole('button', { name: /add a photo|add media|photo|video/i })
       .first()
       .click({ timeout: 8000 });
   } catch {
     // Some layouts mount the input without an explicit click.
   }
 
-  // Set the file directly on the hidden input (most reliable approach).
-  let input = page.locator('input[type="file"][accept*="image"]');
+  // Set the file directly on the matching hidden input (most reliable).
+  let input = page.locator(
+    `input[type="file"][accept*="${isVideo ? 'video' : 'image'}"]`
+  );
   if ((await input.count()) === 0) input = page.locator('input[type="file"]');
   await input.first().waitFor({ state: 'attached', timeout: 10000 });
-  await input.first().setInputFiles(imagePath);
+  await input.first().setInputFiles(mediaPath);
 
-  // Step through the image editor's Next / Done buttons if they appear.
+  // Video uploads need processing time before the editor is ready.
+  const stepTimeout = isVideo ? 180000 : 8000;
   for (const label of [/^next$/i, /^done$/i]) {
     const btn = page.getByRole('button', { name: label });
     try {
-      await btn.waitFor({ timeout: 6000 });
+      await btn.waitFor({ timeout: stepTimeout });
       await btn.click();
     } catch {
       // not present in this flow
     }
   }
+  return isVideo;
 }
 
 (async () => {
@@ -134,11 +145,11 @@ async function attachImage(page, imagePath) {
     process.exit(1);
   }
 
-  let imagePath = null;
-  if (args.image) {
-    imagePath = path.resolve(args.image);
-    if (!fs.existsSync(imagePath)) {
-      console.error(`Image not found: ${imagePath}`);
+  let mediaPath = null;
+  if (args.media) {
+    mediaPath = path.resolve(args.media);
+    if (!fs.existsSync(mediaPath)) {
+      console.error(`Media file not found: ${mediaPath}`);
       process.exit(1);
     }
   }
@@ -200,10 +211,11 @@ async function attachImage(page, imagePath) {
       console.log('Keeping auto link preview.');
     }
 
-    // Attach the custom image. This is what gets shown instead of any URL image.
-    if (imagePath) {
-      await attachImage(page, imagePath);
-      console.log(`Attached image: ${imagePath}`);
+    // Attach the custom media. This is what gets shown instead of any URL image.
+    let mediaIsVideo = false;
+    if (mediaPath) {
+      mediaIsVideo = await attachMedia(page, mediaPath);
+      console.log(`Attached ${mediaIsVideo ? 'video' : 'image'}: ${mediaPath}`);
     }
 
     if (args.dryRun) {
@@ -214,14 +226,15 @@ async function attachImage(page, imagePath) {
       return;
     }
 
-    // Publish. The Post button lives inside the share dialog.
+    // Publish. The Post button lives inside the share dialog. For video, allow
+    // more time for processing to finish and the button to become enabled.
     const dialog = page.getByRole('dialog');
     const postButton = dialog.getByRole('button', { name: /^post$/i });
-    await postButton.waitFor({ timeout: 15000 });
+    await postButton.waitFor({ timeout: mediaIsVideo ? 180000 : 15000 });
     await postButton.click();
 
     // Give LinkedIn a moment to submit and dismiss the dialog.
-    await page.waitForTimeout(8000);
+    await page.waitForTimeout(mediaIsVideo ? 20000 : 8000);
     console.log('Posted to LinkedIn.');
   } catch (err) {
     const shot = path.join(__dirname, '..', 'error-screenshot.png');
