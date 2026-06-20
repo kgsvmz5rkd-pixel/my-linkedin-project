@@ -38,16 +38,30 @@ that reuses a saved login session.
 
 ## Step 2 — Research
 
-Use `WebSearch` and `WebFetch` to gather current, concrete material:
+Gather current, concrete material. **Priority order matters:**
 
-- Run several focused searches on the topic for recent, credible sources.
-- For Reddit specifically, search with `site:reddit.com <topic>` (and relevant
-  subreddits if known), then `WebFetch` the most relevant threads to pull real
-  opinions, pain points, phrasing, and counterpoints people actually use.
-- Collect 3–6 concrete takeaways: stats, quotes, tensions, fresh angles. Keep a
-  short source list (title + URL) to show the user.
+**Web publications and references come first.** Use `WebSearch` and `WebFetch`
+to find recent, credible sources — reputable publications, research reports,
+official data, and named references. These are the backbone of the post and
+what gives it authority. Pull the specific stats, quotes, and findings, and
+keep the source URLs.
 
-Prefer specific, recent, verifiable points over generic claims.
+**Reddit comes second**, as a supporting layer for real-world sentiment, pain
+points, and the phrasing people actually use. Note: reddit.com is blocked to the
+web crawler, so do NOT rely on `WebFetch`/`WebSearch` for it. Instead run the
+bundled script, which uses Reddit's public JSON endpoints:
+
+```bash
+node scripts/reddit-research.js "<topic>" --limit 6 --comments 3
+# optionally narrow: --subreddit <name> --time month
+```
+
+Use Reddit to add color and counterpoints, not as the primary evidence base.
+
+Collect 3–6 concrete takeaways: stats, quotes, tensions, fresh angles, with web
+publications leading and Reddit sentiment supporting. Keep a short source list
+(title + URL) to show the user. Prefer specific, recent, verifiable points over
+generic claims.
 
 ## Step 3 — Draft in the user's voice
 
