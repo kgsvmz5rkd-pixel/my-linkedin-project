@@ -193,6 +193,11 @@ async function attachImage(page, imagePath) {
           ? 'Removed auto link preview.'
           : 'No removable link preview found (image attach will also drop it).'
       );
+    } else if (hasUrl && args.keepPreview) {
+      // Give LinkedIn time to fetch and render the link preview card so it is
+      // attached to the post before we click Post.
+      await page.waitForTimeout(5000);
+      console.log('Keeping auto link preview.');
     }
 
     // Attach the custom image. This is what gets shown instead of any URL image.
