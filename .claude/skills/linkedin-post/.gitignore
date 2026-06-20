@@ -1,0 +1,10 @@
+# Live auth cookies — NEVER commit
+.linkedin-session.json
+
+# Generated artifacts
+draft.md
+dry-run-preview.png
+error-screenshot.png
+
+# Node
+node_modules/

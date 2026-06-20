@@ -1,0 +1,13 @@
+{
+  "name": "linkedin-post-skill",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Playwright scripts for the linkedin-post Claude Code skill.",
+  "scripts": {
+    "save-session": "node scripts/save-linkedin-session.js",
+    "post": "node scripts/post-to-linkedin.js"
+  },
+  "dependencies": {
+    "playwright": "^1.48.0"
+  }
+}
