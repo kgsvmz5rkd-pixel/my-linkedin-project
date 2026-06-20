@@ -29,18 +29,21 @@ reference. The skill will NOT invent any beyond this list.
 
 ## Tone and style
 
-- Voice: <FILL IN — e.g. "direct, warm, a little contrarian, no corporate fluff">
-- Sentence length: <FILL IN — e.g. "short. punchy. one idea per line.">
-- Point of view: <FILL IN — e.g. "first person, opinionated, practitioner not pundit">
+- Voice: warm, executive, friendly. Approachable but credible.
+- Sentence length: succinct and punchy, yet measured. No hype, no fluff.
+- Point of view: first person, considered, leader-to-peers.
 
 ## Formatting habits
 
-- Hooks: <FILL IN — e.g. "open with a bold claim or a 1-line story">
-- Emojis: <FILL IN — e.g. "none" / "1–2 max" / "section markers only">
-- Hashtags: <FILL IN — e.g. "none" / "2–3 at the very end">
-- Line breaks: <FILL IN — e.g. "lots of whitespace, one-sentence paragraphs">
-- CTA: <FILL IN — e.g. "end with a question to drive comments">
-- Length: <FILL IN — e.g. "1,200–1,500 characters">
+- Hooks: open with a clear, grounded hook (no clickbait).
+- Em dashes: do NOT use em dashes (—). Rewrite to avoid them.
+- Emojis: use sparingly, and only when they genuinely add meaning.
+- Hashtags: include a few meaningful, relevant hashtags at the end.
+- Inclusive language: write so it reads as welcoming and respectful to all
+  groups who may see it. Avoid jargon, idioms, or assumptions that exclude.
+- Line breaks: generous whitespace, short paragraphs for skimmability.
+- CTA: end with a thoughtful takeaway or an inviting question.
+- Length: aim for 1,200–1,800 characters.
 
 ## Topics / themes I post about
 
