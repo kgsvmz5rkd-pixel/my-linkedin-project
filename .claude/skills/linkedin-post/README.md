@@ -1,7 +1,23 @@
 # linkedin-post skill
 
 A Claude Code skill that researches a topic (web + Reddit), drafts a LinkedIn
-post in your voice, and — after you approve — publishes it via Playwright.
+post in your voice, and (after you approve) publishes it via Playwright.
+
+## Getting started on your computer
+
+Publishing needs a browser logged into your LinkedIn, so run this on your own
+machine (not a cloud session). Do this once:
+
+```bash
+git clone <this repo> && cd <repo>/.claude/skills/linkedin-post
+npm install
+npx playwright install chromium
+$EDITOR reference/voice-profile.md          # fill in your story + proof points
+node scripts/save-linkedin-session.js       # browser opens; log into LinkedIn
+```
+
+Then, any time you want a post, just tell Claude a topic. It drafts, you
+review and approve, it publishes. That's it.
 
 ## How it works
 
