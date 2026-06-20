@@ -7,13 +7,18 @@
  * Usage:
  *   node scripts/post-to-linkedin.js --file draft.md
  *   node scripts/post-to-linkedin.js --text "Hello world"
+ *   node scripts/post-to-linkedin.js --text "test one" --image assets/test-image.png
  *   node scripts/post-to-linkedin.js --file draft.md --dry-run --headed
  *
  * Flags:
- *   --file <path>   Read post content from a file (preferred for long posts).
- *   --text <str>    Inline post content.
- *   --dry-run       Fill the composer and screenshot, but DO NOT publish.
- *   --headed        Run with a visible browser window (useful for debugging).
+ *   --file <path>    Read post content from a file (preferred for long posts).
+ *   --text <str>     Inline post content.
+ *   --image <path>   Attach a custom image. This also REPLACES LinkedIn's
+ *                    auto-generated link preview, so any URLs in the text show
+ *                    as plain links and your image is used instead.
+ *   --keep-preview   Do not try to remove LinkedIn's auto link preview.
+ *   --dry-run        Fill the composer and screenshot, but DO NOT publish.
+ *   --headed         Run with a visible browser window (useful for debugging).
  *
  * Env:
  *   LINKEDIN_SESSION_PATH  Override where the session is read from.
@@ -25,11 +30,20 @@ const path = require('path');
 const MAX_CHARS = 3000;
 
 function parseArgs(argv) {
-  const args = { file: null, text: null, dryRun: false, headless: true };
+  const args = {
+    file: null,
+    text: null,
+    image: null,
+    keepPreview: false,
+    dryRun: false,
+    headless: true,
+  };
   for (let i = 2; i < argv.length; i++) {
     const a = argv[i];
     if (a === '--file') args.file = argv[++i];
     else if (a === '--text') args.text = argv[++i];
+    else if (a === '--image') args.image = argv[++i];
+    else if (a === '--keep-preview') args.keepPreview = true;
     else if (a === '--dry-run') args.dryRun = true;
     else if (a === '--headed') args.headless = false;
     else {
@@ -52,6 +66,56 @@ async function typeWithLineBreaks(page, text) {
   }
 }
 
+// Best-effort removal of the auto-generated link preview card.
+async function removeLinkPreview(page) {
+  const candidates = [
+    page.getByRole('button', { name: /remove (link|article|media|preview)/i }),
+    page.getByRole('button', { name: /^remove$/i }),
+    page.getByRole('button', { name: /dismiss/i }),
+  ];
+  for (const c of candidates) {
+    try {
+      if ((await c.count()) > 0) {
+        await c.first().click({ timeout: 3000 });
+        return true;
+      }
+    } catch {
+      // try next candidate
+    }
+  }
+  return false;
+}
+
+// Attach a custom image. Adding media also makes LinkedIn drop the link preview.
+async function attachImage(page, imagePath) {
+  // Click the media/photo button so the file input is mounted.
+  try {
+    await page
+      .getByRole('button', { name: /add a photo|add media|photo/i })
+      .first()
+      .click({ timeout: 8000 });
+  } catch {
+    // Some layouts mount the input without an explicit click.
+  }
+
+  // Set the file directly on the hidden input (most reliable approach).
+  let input = page.locator('input[type="file"][accept*="image"]');
+  if ((await input.count()) === 0) input = page.locator('input[type="file"]');
+  await input.first().waitFor({ state: 'attached', timeout: 10000 });
+  await input.first().setInputFiles(imagePath);
+
+  // Step through the image editor's Next / Done buttons if they appear.
+  for (const label of [/^next$/i, /^done$/i]) {
+    const btn = page.getByRole('button', { name: label });
+    try {
+      await btn.waitFor({ timeout: 6000 });
+      await btn.click();
+    } catch {
+      // not present in this flow
+    }
+  }
+}
+
 (async () => {
   const args = parseArgs(process.argv);
 
@@ -68,6 +132,15 @@ async function typeWithLineBreaks(page, text) {
       `Post is ${content.length} chars, over LinkedIn's ${MAX_CHARS} limit. Shorten it.`
     );
     process.exit(1);
+  }
+
+  let imagePath = null;
+  if (args.image) {
+    imagePath = path.resolve(args.image);
+    if (!fs.existsSync(imagePath)) {
+      console.error(`Image not found: ${imagePath}`);
+      process.exit(1);
+    }
   }
 
   if (!fs.existsSync(SESSION_PATH)) {
@@ -109,6 +182,25 @@ async function typeWithLineBreaks(page, text) {
 
     await typeWithLineBreaks(page, content);
 
+    // If there are URLs, LinkedIn renders a preview card after a moment.
+    // Remove it (unless asked to keep it) so the website's image isn't used.
+    const hasUrl = /https?:\/\/|www\./i.test(content);
+    if (hasUrl && !args.keepPreview) {
+      await page.waitForTimeout(3500); // let the preview load
+      const removed = await removeLinkPreview(page);
+      console.log(
+        removed
+          ? 'Removed auto link preview.'
+          : 'No removable link preview found (image attach will also drop it).'
+      );
+    }
+
+    // Attach the custom image. This is what gets shown instead of any URL image.
+    if (imagePath) {
+      await attachImage(page, imagePath);
+      console.log(`Attached image: ${imagePath}`);
+    }
+
     if (args.dryRun) {
       const shot = path.join(__dirname, '..', 'dry-run-preview.png');
       await page.screenshot({ path: shot, fullPage: false });
@@ -124,7 +216,7 @@ async function typeWithLineBreaks(page, text) {
     await postButton.click();
 
     // Give LinkedIn a moment to submit and dismiss the dialog.
-    await page.waitForTimeout(6000);
+    await page.waitForTimeout(8000);
     console.log('Posted to LinkedIn.');
   } catch (err) {
     const shot = path.join(__dirname, '..', 'error-screenshot.png');

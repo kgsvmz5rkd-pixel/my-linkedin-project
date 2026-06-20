@@ -117,6 +117,18 @@ The script loads the saved session, opens the composer, types the post
 (preserving line breaks), and clicks Post. If it reports the session expired,
 have the user re-run `save-linkedin-session.js` and try again.
 
+### Images and link previews
+
+- To attach a custom image, pass `--image <path>` (e.g.
+  `assets/test-image.png`). A bundled placeholder image lives in `assets/`.
+- When the post text contains a URL, LinkedIn auto-generates a link preview
+  using the website's own image. The script removes that preview, and
+  attaching an image replaces it entirely, so the user's chosen image is shown
+  instead of the URL's image. The URLs remain as plain clickable links in the
+  body. Use `--keep-preview` to opt out of removal.
+- Always offer a `--dry-run --headed` first so the user can visually confirm
+  the image is theirs (not the website's) before publishing.
+
 After posting, confirm success to the user and clean up `draft.md` if desired.
 
 ## Setup notes
