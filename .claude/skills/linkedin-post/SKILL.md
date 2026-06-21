@@ -1,18 +1,18 @@
 ---
 name: linkedin-post
 description: >-
-  Research a topic on the web and Reddit, draft a LinkedIn post in the user's
-  personal tone of voice (using their story and proof points), and publish it
-  live to LinkedIn via a Playwright browser script after the user approves.
-  Use when the user wants to research a topic and turn it into a LinkedIn post,
-  write a LinkedIn post in their voice, or post to LinkedIn.
+  Create a LinkedIn post and publish it live via a Playwright browser script
+  after the user approves. Three entry modes: (1) research a topic and write a
+  new post in the user's voice, (2) take an existing post the user pastes in and
+  refine it into their voice, or (3) post an existing draft as-is. Use when the
+  user wants to write, refine, or publish a LinkedIn post.
 ---
 
-# LinkedIn research → draft → post
+# LinkedIn: create / refine → approve → post
 
-End-to-end workflow: take a topic, research it, write a post that sounds like the
-user, get explicit approval, then publish to LinkedIn with a Playwright script
-that reuses a saved login session.
+End-to-end workflow: produce a post (new, refined, or as-is), get explicit
+approval, then publish to LinkedIn with a Playwright script that reuses a saved
+login session.
 
 ## Hard rules
 
@@ -26,17 +26,36 @@ that reuses a saved login session.
 - The session file (`.linkedin-session.json`) holds live auth cookies. It is
   gitignored. Never commit it, print its contents, or paste it anywhere.
 
-## Step 1 — Get the topic and read the voice profile
+## Step 0 — Pick the mode
 
-1. Confirm the topic/angle with the user if it isn't already clear.
-2. Read `reference/voice-profile.md` (path relative to this skill). This is the
-   source of truth for tone, personal story, proof points, formatting habits,
-   and topics to avoid.
-3. If the profile still contains template placeholders (e.g. `<FILL IN>`), tell
+Figure out which of these the user wants (ask if unclear):
+
+- **A. Generate from a topic** — they give a topic/angle. Do Steps 1→2→3→4→5.
+- **B. Refine an existing post** — they paste (or point to a file containing) an
+  existing post and want it improved. Skip topic research unless they ask for
+  it; go Step 1 (read profile) → Step 3R (refine) → 4 → 5.
+- **C. Post an existing post as-is** — they paste a finished post and just want
+  it published. Skip research and rewriting; go straight to Step 4 (confirm
+  exact text + any media) → 5. Only fix obvious issues if they ask.
+
+For B and C, the pasted text can come straight from the chat, or the user can
+save it to a file (e.g. `draft.md`) and you read it.
+
+## Step 1 — Read the voice profile
+
+1. For modes A and B, read `reference/voice-profile.md` (path relative to this
+   skill). This is the source of truth for tone, personal story, proof points,
+   formatting habits, and topics to avoid.
+2. If the profile still contains template placeholders (e.g. `<FILL IN>`), tell
    the user it needs to be filled in first, and offer to help draft it from
    anything they paste.
+3. For mode C (post as-is), you can skip the profile unless the user asks for
+   light edits.
 
-## Step 2 — Research
+## Step 2 — Research (mode A; optional for mode B)
+
+Do this for mode A. For mode B, only research if the user wants to strengthen
+the post with fresh facts; otherwise skip to Step 3R. Skip entirely for mode C.
 
 Gather current, concrete material. **Priority order matters:**
 
@@ -81,6 +100,24 @@ Show the user:
 1. The draft post (exactly as it will appear).
 2. The character count.
 3. The research sources used.
+
+## Step 3R — Refine an existing post (mode B)
+
+Start from the post the user pasted (or the file they pointed to). Preserve
+their core message, facts, and any numbers they already included — do not invent
+new claims. Then improve it against the voice profile:
+
+- Strengthen the hook (first ~2 lines).
+- Match tone, sentence length, emoji/hashtag habits, and formatting rules
+  (e.g. no em dashes, inclusive language) from the voice profile.
+- Tighten wording, fix awkward phrasing, improve the closing CTA.
+- Keep it under 3,000 characters (aim 1,200–1,800).
+- Only weave in proof points that are already in the profile or in the user's
+  original text. If you also did research (optional), fold in those takeaways.
+
+Show the user a clear **before → after** so they can see what changed, plus the
+new character count. Offer options like "punchier," "more formal," "shorter,"
+or "keep more of my original wording." Iterate until they approve.
 
 ## Step 4 — Get approval
 
